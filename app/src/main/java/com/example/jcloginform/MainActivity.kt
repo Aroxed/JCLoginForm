@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -20,13 +21,18 @@ import androidx.compose.ui.unit.dp
 import com.example.jcloginform.ui.theme.JCLoginFormTheme
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: LoginViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             JCLoginFormTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    LoginScreen(modifier = Modifier.padding(innerPadding))
+                    LoginScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        viewModel = viewModel
+                    )
                 }
             }
         }
@@ -34,11 +40,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoginScreen(modifier: Modifier = Modifier) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isEmailError by remember { mutableStateOf(false) }
-    var isPasswordError by remember { mutableStateOf(false) }
+fun LoginScreen(
+    modifier: Modifier = Modifier,
+    viewModel: LoginViewModel
+) {
+    val state = viewModel.state
     val context = LocalContext.current
 
     Column(
@@ -55,15 +61,12 @@ fun LoginScreen(modifier: Modifier = Modifier) {
         )
 
         OutlinedTextField(
-            value = email,
-            onValueChange = {
-                email = it
-                isEmailError = false
-            },
+            value = state.email,
+            onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
             label = { Text("Email") },
-            isError = isEmailError,
+            isError = state.isEmailError,
             supportingText = {
-                if (isEmailError) {
+                if (state.isEmailError) {
                     Text("Please enter a valid email")
                 }
             },
@@ -77,15 +80,12 @@ fun LoginScreen(modifier: Modifier = Modifier) {
         )
 
         OutlinedTextField(
-            value = password,
-            onValueChange = {
-                password = it
-                isPasswordError = false
-            },
+            value = state.password,
+            onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
             label = { Text("Password") },
-            isError = isPasswordError,
+            isError = state.isPasswordError,
             supportingText = {
-                if (isPasswordError) {
+                if (state.isPasswordError) {
                     Text("Password must be at least 6 characters")
                 }
             },
@@ -101,16 +101,15 @@ fun LoginScreen(modifier: Modifier = Modifier) {
 
         Button(
             onClick = {
-                isEmailError = !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-                isPasswordError = password.length < 6
-
-                if (!isEmailError && !isPasswordError) {
+                viewModel.onEvent(LoginEvent.LoginClicked)
+                if (!state.isEmailError && !state.isPasswordError) {
                     Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
+                .height(50.dp),
+            enabled = state.isLoginEnabled
         ) {
             Text("Login")
         }
@@ -121,6 +120,6 @@ fun LoginScreen(modifier: Modifier = Modifier) {
 @Composable
 fun LoginScreenPreview() {
     JCLoginFormTheme {
-        LoginScreen()
+        LoginScreen(viewModel = LoginViewModel())
     }
 }
