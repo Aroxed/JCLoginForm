@@ -1,17 +1,25 @@
 package com.example.jcloginform
 
+import android.util.Patterns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import android.util.Patterns
+import androidx.lifecycle.viewModelScope
+import com.example.jcloginform.data.LoginApi
+import com.example.jcloginform.data.LoginRequest
+import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 data class LoginState(
     val email: String = "",
     val password: String = "",
     val isEmailError: Boolean = false,
     val isPasswordError: Boolean = false,
-    val isLoginEnabled: Boolean = false
+    val isLoginEnabled: Boolean = false,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null
 )
 
 sealed class LoginEvent {
@@ -24,12 +32,20 @@ class LoginViewModel : ViewModel() {
     var state by mutableStateOf(LoginState())
         private set
 
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("http://10.0.2.2:3000/") // Android emulator localhost
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    private val loginApi = retrofit.create(LoginApi::class.java)
+
     fun onEvent(event: LoginEvent) {
         when (event) {
             is LoginEvent.EmailChanged -> {
                 state = state.copy(
                     email = event.email,
                     isEmailError = false,
+                    errorMessage = null,
                     isLoginEnabled = isValidInput(event.email, state.password)
                 )
             }
@@ -37,6 +53,7 @@ class LoginViewModel : ViewModel() {
                 state = state.copy(
                     password = event.password,
                     isPasswordError = false,
+                    errorMessage = null,
                     isLoginEnabled = isValidInput(state.email, event.password)
                 )
             }
@@ -44,9 +61,39 @@ class LoginViewModel : ViewModel() {
                 val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(state.email).matches()
                 val isPasswordValid = state.password.length >= 6
 
+                if (!isEmailValid || !isPasswordValid) {
+                    state = state.copy(
+                        isEmailError = !isEmailValid,
+                        isPasswordError = !isPasswordValid
+                    )
+                    return
+                }
+
+                login()
+            }
+        }
+    }
+
+    private fun login() {
+        viewModelScope.launch {
+            state = state.copy(isLoading = true, errorMessage = null)
+            try {
+                val response = loginApi.login(LoginRequest(state.email, state.password))
+                if (response.isSuccessful) {
+                    state = state.copy(
+                        isLoading = false,
+                        errorMessage = "Successful!"
+                    )
+                } else {
+                    state = state.copy(
+                        isLoading = false,
+                        errorMessage = "Invalid credentials"
+                    )
+                }
+            } catch (e: Exception) {
                 state = state.copy(
-                    isEmailError = !isEmailValid,
-                    isPasswordError = !isPasswordValid
+                    isLoading = false,
+                    errorMessage = "Network error: ${e.message}"
                 )
             }
         }

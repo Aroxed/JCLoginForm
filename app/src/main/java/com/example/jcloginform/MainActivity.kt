@@ -47,71 +47,83 @@ fun LoginScreen(
     val state = viewModel.state
     val context = LocalContext.current
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Login",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+        }
+    }
 
-        OutlinedTextField(
-            value = state.email,
-            onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
-            label = { Text("Email") },
-            isError = state.isEmailError,
-            supportingText = {
-                if (state.isEmailError) {
-                    Text("Please enter a valid email")
-                }
-            },
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            )
-        )
-
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
-            label = { Text("Password") },
-            isError = state.isPasswordError,
-            supportingText = {
-                if (state.isPasswordError) {
-                    Text("Password must be at least 6 characters")
-                }
-            },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            )
-        )
-
-        Button(
-            onClick = {
-                viewModel.onEvent(LoginEvent.LoginClicked)
-                if (!state.isEmailError && !state.isPasswordError) {
-                    Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            enabled = state.isLoginEnabled
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Login")
+            Text(
+                text = "Login",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+
+            OutlinedTextField(
+                value = state.email,
+                onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
+                label = { Text("Email") },
+                isError = state.isEmailError,
+                supportingText = {
+                    if (state.isEmailError) {
+                        Text("Please enter a valid email")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                enabled = !state.isLoading
+            )
+
+            OutlinedTextField(
+                value = state.password,
+                onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
+                label = { Text("Password") },
+                isError = state.isPasswordError,
+                supportingText = {
+                    if (state.isPasswordError) {
+                        Text("Password must be at least 6 characters")
+                    }
+                },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                enabled = !state.isLoading
+            )
+
+            Button(
+                onClick = { viewModel.onEvent(LoginEvent.LoginClicked) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                enabled = state.isLoginEnabled && !state.isLoading
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Login")
+                }
+            }
         }
     }
 }
