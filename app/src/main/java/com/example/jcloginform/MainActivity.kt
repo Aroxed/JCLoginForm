@@ -32,12 +32,14 @@ class MainActivity : ComponentActivity() {
                     val state = viewModel.state
                     val context = LocalContext.current
 
+                    // when state.errorMessage is changed run the body
                     LaunchedEffect(state.errorMessage) {
                         state.errorMessage?.let {
                             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
                         }
                     }
 
+                    // purely for UI rendering (when state.currentScreen is changed..)
                     when (state.currentScreen) {
                         Screen.Login -> LoginScreen(
                             modifier = Modifier.padding(innerPadding),

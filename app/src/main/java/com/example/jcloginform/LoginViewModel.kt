@@ -30,11 +30,12 @@ data class LoginState(
     val isAuthenticated: Boolean = false
 )
 
+// sealed - only this file
 sealed class LoginEvent {
-    data class EmailChanged(val email: String) : LoginEvent()
-    data class PasswordChanged(val password: String) : LoginEvent()
-    object LoginClicked : LoginEvent()
-    object LogoutClicked : LoginEvent()
+    data class EmailChanged(val email: String) : LoginEvent() // singleton (data)
+    data class PasswordChanged(val password: String) : LoginEvent() // singleton (data)
+    object LoginClicked : LoginEvent() // singleton (no need data)
+    object LogoutClicked : LoginEvent() // singleton (no need data)
 }
 
 class LoginViewModel : ViewModel() {
@@ -51,6 +52,7 @@ class LoginViewModel : ViewModel() {
     fun onEvent(event: LoginEvent) {
         when (event) {
             is LoginEvent.EmailChanged -> {
+                // state.copy is important! = reactivity!
                 state = state.copy(
                     email = event.email,
                     isEmailError = false,
@@ -87,6 +89,7 @@ class LoginViewModel : ViewModel() {
     }
 
     private fun login() {
+        // viewModelScope is a coroutine scope (handles lifecycle of ViewModel automatically)
         viewModelScope.launch {
             state = state.copy(isLoading = true, errorMessage = null)
             try {
