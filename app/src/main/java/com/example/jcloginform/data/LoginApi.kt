@@ -9,11 +9,19 @@ data class LoginRequest(
     val password: String
 )
 
+data class LogoutRequest(
+    val email: String
+)
+
 data class LoginResponse(
-    val message: String
+    val message: String,
+    val email: String
 )
 
 interface LoginApi {
     @POST("api/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    @POST("api/logout")
+    suspend fun logout(@Body request: LogoutRequest): Response<LoginResponse>
 } 

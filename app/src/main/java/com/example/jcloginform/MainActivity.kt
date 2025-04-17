@@ -29,10 +29,25 @@ class MainActivity : ComponentActivity() {
         setContent {
             JCLoginFormTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    LoginScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        viewModel = viewModel
-                    )
+                    val state = viewModel.state
+                    val context = LocalContext.current
+
+                    LaunchedEffect(state.errorMessage) {
+                        state.errorMessage?.let {
+                            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    when (state.currentScreen) {
+                        Screen.Login -> LoginScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            viewModel = viewModel
+                        )
+                        Screen.Profile -> ProfileScreen(
+                            email = state.email,
+                            onLogout = { viewModel.onEvent(LoginEvent.LogoutClicked) }
+                        )
+                    }
                 }
             }
         }
@@ -45,13 +60,6 @@ fun LoginScreen(
     viewModel: LoginViewModel
 ) {
     val state = viewModel.state
-    val context = LocalContext.current
-
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-        }
-    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(

@@ -17,29 +17,50 @@ const users = [
     }
 ];
 
-app.post('/api/login', async (req, res) => { console.log(req.body)
+// Track active sessions (for demo purposes)
+const activeSessions = new Set();
+
+app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
         // Find user
         const user = users.find(u => u.email === email);
-
         if (!user) {
-            return res.status(401).json({ message: 'Invalid user credentials' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         // Check password
         const isValidPassword = password === user.password;
 		console.log(isValidPassword)
         if (!isValidPassword) {
-            return res.status(401).json({ message: 'Invalid pwd credentials' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        // Create session
+        activeSessions.add(email);
+
         // Success
-        res.json({ message: 'Login successful' });
+        res.json({ 
+            message: 'Login successful',
+            email: email
+        });
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.post('/api/logout', (req, res) => {
+    const { email } = req.body;
+    
+    if (email && activeSessions.has(email)) {
+        activeSessions.delete(email);
+        res.json({ message: 'Logout successful' });
+        console.log('Logout successful')
+    } else {
+        res.status(400).json({ message: 'Invalid session' });
+        console.log('Invalid session')
     }
 });
 

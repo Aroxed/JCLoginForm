@@ -8,9 +8,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.jcloginform.data.LoginApi
 import com.example.jcloginform.data.LoginRequest
+import com.example.jcloginform.data.LogoutRequest
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+
+sealed class Screen {
+    object Login : Screen()
+    object Profile : Screen()
+}
 
 data class LoginState(
     val email: String = "",
@@ -19,13 +25,16 @@ data class LoginState(
     val isPasswordError: Boolean = false,
     val isLoginEnabled: Boolean = false,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val currentScreen: Screen = Screen.Login,
+    val isAuthenticated: Boolean = false
 )
 
 sealed class LoginEvent {
     data class EmailChanged(val email: String) : LoginEvent()
     data class PasswordChanged(val password: String) : LoginEvent()
     object LoginClicked : LoginEvent()
+    object LogoutClicked : LoginEvent()
 }
 
 class LoginViewModel : ViewModel() {
@@ -71,6 +80,9 @@ class LoginViewModel : ViewModel() {
 
                 login()
             }
+            LoginEvent.LogoutClicked -> {
+                logout()
+            }
         }
     }
 
@@ -82,12 +94,43 @@ class LoginViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     state = state.copy(
                         isLoading = false,
-                        errorMessage = "Successful!"
+                        errorMessage = null,
+                        currentScreen = Screen.Profile,
+                        isAuthenticated = true
                     )
                 } else {
                     state = state.copy(
                         isLoading = false,
-                        errorMessage = "Invalid credentials"
+                        errorMessage = response.message()
+                    )
+                }
+            } catch (e: Exception) {
+                state = state.copy(
+                    isLoading = false,
+                    errorMessage = "Network error: ${e.message}"
+                )
+            }
+        }
+    }
+
+    private fun logout() {
+        viewModelScope.launch {
+            state = state.copy(isLoading = true, errorMessage = null)
+            try {
+                val response = loginApi.logout(LogoutRequest(state.email))
+                if (response.isSuccessful) {
+                    state = state.copy(
+                        isLoading = false,
+                        errorMessage = null,
+                        currentScreen = Screen.Login,
+                        isAuthenticated = false,
+                        email = "",
+                        password = ""
+                    )
+                } else {
+                    state = state.copy(
+                        isLoading = false,
+                        errorMessage = response.message()
                     )
                 }
             } catch (e: Exception) {
